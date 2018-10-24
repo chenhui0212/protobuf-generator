@@ -37,7 +37,7 @@ public class ProtoExecutor {
         // 扫描器
         SelectableScanner scanner;
         if (builder.getJarFile() != null) {
-            scanner = new JarFileScanner(builder.getJarFile());
+            scanner = new JarFileScanner(builder.getJarFile(), builder.isNeedLoadJarFile());
         } else {
             if (builder.getProjectBasePath() != null) {
                 scanner = new ProjectScanner(projectPath, builder.getProjectBasePath());
@@ -130,6 +130,11 @@ public class ProtoExecutor {
         private String jarFile;
 
         /**
+         * 是否需要加载Jar文件
+         */
+        private boolean isNeedLoadJarFile = true;
+
+        /**
          * 指定项目基础路径
          * 默认为 Maven 路径（src/main/java）
          */
@@ -171,6 +176,11 @@ public class ProtoExecutor {
         public Builder setJarFile(String jarFile) {
             AssertUtil.hasText(jarFile);
             this.jarFile = jarFile;
+            return this;
+        }
+
+        public Builder setNeedLoadJarFile(boolean isNeedLoadJarFile) {
+            this.isNeedLoadJarFile = isNeedLoadJarFile;
             return this;
         }
 
