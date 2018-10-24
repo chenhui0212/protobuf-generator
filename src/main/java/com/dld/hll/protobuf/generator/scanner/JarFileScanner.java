@@ -6,6 +6,9 @@ import lombok.Setter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.jar.JarEntry;
@@ -20,9 +23,14 @@ import java.util.jar.JarInputStream;
 @Setter
 public class JarFileScanner extends SelectableScanner {
     private String jarFile;
+    private URLClassLoader jcl;
 
-    public JarFileScanner(String jarFile) {
+    public JarFileScanner(String jarFile, boolean isNeedLoad) throws MalformedURLException {
         this.jarFile = jarFile;
+        if (isNeedLoad) {
+            jcl = new URLClassLoader(new URL[]{new File(jarFile).toURI().toURL()},
+                    this.getClass().getClassLoader());
+        }
     }
 
     @Override
@@ -43,7 +51,7 @@ public class JarFileScanner extends SelectableScanner {
                 }
 
                 // 删除后缀名 (.class)
-                Class<?> clazz = Class.forName(className.substring(0, className.length() - 6));
+                Class<?> clazz = Class.forName(className.substring(0, className.length() - 6), true, jcl);
                 if (clazz.isInterface() && isAcceptable(clazz)) {
                     classes.add(clazz);
                 }
