@@ -1,0 +1,102 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "com.dld.hll.protobuf.generator.service.grpc";
+option java_outer_classname = "UserServiceClass";
+import "Common.proto";
+import "google/protobuf/wrappers.proto";
+
+message UserAddReq {
+    // 请求头
+    RequestHeader header = 1;
+    // 用户ID
+    google.protobuf.Int64Value id = 2;
+    // 用户名称
+    google.protobuf.StringValue name = 3;
+    // 密码
+    google.protobuf.StringValue password = 4;
+    // 性别
+    SexEnum sex = 5;
+    // 生日
+    google.protobuf.StringValue birthday = 6;
+}
+
+message GenericReq {
+    repeated ListString listList = 1;
+    repeated MapStringString listMap = 2;
+    map<string, ListString> mapList = 3;
+    map<google.protobuf.StringValue, MapStringString> mapMap = 4;
+}
+
+enum SexEnum {
+    UNSPECIFIED = 0; // always use a zero value here
+    MALE = 1;
+    FEMALE = 2;
+}
+
+message UserQueryReq {
+    // 请求头
+    RequestHeader header = 1;
+    // 用户ID
+    google.protobuf.Int64Value id = 2;
+}
+
+message UserVO {
+    // 用户ID
+    google.protobuf.Int64Value id = 1;
+    // 用户名
+    google.protobuf.StringValue name = 2;
+    // 性别
+    SexEnum sex = 3;
+    // 公司列表
+    repeated CompanyVO companyList = 4;
+}
+
+message CompanyVO {
+    // 公司名称
+    google.protobuf.StringValue name = 1;
+    // 公司规模
+    int32 scale = 2;
+    // 子公司
+    CompanyVO sub = 3;
+    // 子公司
+    repeated CompanyVO subs = 4;
+}
+
+message GenericResp {
+    repeated ListString listList = 1;
+    repeated MapStringString listMap = 2;
+    map<google.protobuf.StringValue, ListString> mapList = 3;
+    map<google.protobuf.StringValue, MapStringString> mapMap = 4;
+}
+
+message UserQueryResp {
+    // 返回码
+    google.protobuf.StringValue resCode = 1;
+    // 返回信息
+    google.protobuf.StringValue resMsg = 2;
+    // 用户信息
+    UserVO user = 3;
+}
+
+message UserListQueryResp {
+    // 返回码
+    google.protobuf.StringValue resCode = 1;
+    // 返回信息
+    google.protobuf.StringValue resMsg = 2;
+    repeated UserVO user = 3;
+}
+
+// 用户基础服务
+service UserService {
+    // 查询用户信息
+    rpc add (UserAddReq) returns (BaseResp);
+    // 查询用户信息
+    rpc query (UserQueryReq) returns (UserQueryResp);
+    // 测试空请求空返回值
+    rpc test (Empty) returns (Empty);
+    // 查询全部用户信息
+    rpc queryAll (BaseReq) returns (UserListQueryResp);
+    // 测试List嵌套
+    rpc testList (GenericReq) returns (GenericResp);
+}
