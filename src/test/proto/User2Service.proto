@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "com.dld.hll.protobuf.generator.service.grpc";
+option java_outer_classname = "User2ServiceClass";
+import "ProtobufGeneratorCommon.proto";
+import "google/protobuf/wrappers.proto";
+
+message UserQuery2Resp {
+    // 用户信息
+    UserVO user = 1;
+    repeated TestVO testVOList = 2;
+}
+
+// 用户基础服务2
+service User2Service {
+    // 查询用户信息
+    rpc query (UserQueryReq) returns (UserQuery2Resp);
+}

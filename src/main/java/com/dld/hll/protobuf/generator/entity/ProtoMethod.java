@@ -1,26 +1,31 @@
 package com.dld.hll.protobuf.generator.entity;
 
-import lombok.Data;
-import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.lang.reflect.Method;
 
 /**
  * @author Chen Hui
  */
-@Data
-@EqualsAndHashCode(callSuper = true)
-public class ProtoMethod extends AbstractProtoInfo {
+@Getter
+@Setter
+public class ProtoMethod extends ProtoCommentSupport {
+
     private Method method;
 
     /**
-     * 方法参数个数最多一个
+     * 方法参数类型，个数最多一个
      */
     private Class<?> parameterType;
     private ProtoObject parameterProtoObject;
 
+    /**
+     * 返回值类型
+     */
     private Class<?> returnType;
     private ProtoObject returnProtoObject;
+
 
     public ProtoMethod(Method method) {
         this.method = method;
@@ -32,15 +37,13 @@ public class ProtoMethod extends AbstractProtoInfo {
     }
 
     @Override
-    public String getDescription() {
-        return getDescription(method);
+    public String getComment() {
+        return getComment(method);
     }
 
-    @Override
-    public boolean hasDescription() {
-        return hasDescription(method);
-    }
-
+    /**
+     * 获取方法参数类型名称
+     */
     public String getParameterTypeName() {
         if (parameterType == null) {
             return "Empty";
@@ -48,6 +51,9 @@ public class ProtoMethod extends AbstractProtoInfo {
         return parameterType.getSimpleName();
     }
 
+    /**
+     * 获取方法返回值类型名称
+     */
     public String getReturnTypeName() {
         if (returnType == null) {
             return "Empty";

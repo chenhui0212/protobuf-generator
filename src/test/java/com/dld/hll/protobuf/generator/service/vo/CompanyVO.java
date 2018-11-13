@@ -20,4 +20,7 @@ public class CompanyVO {
 
     @Comment("子公司")
     private List<CompanyVO> subs;
+
+    @Comment("子公司")
+    private List<List<CompanyVO>> companyList;
 }

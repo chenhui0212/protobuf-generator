@@ -5,6 +5,7 @@ import com.dld.hll.protobuf.generator.scanner.ProjectScanner;
 import com.dld.hll.protobuf.generator.scanner.SelectableScanner;
 import com.dld.hll.protobuf.generator.selector.ExtendsInterfaceSelector;
 import com.dld.hll.protobuf.generator.selector.NamePatternSelector;
+import com.dld.hll.protobuf.generator.util.AssertUtils;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -22,11 +23,12 @@ public class ProtoExecutor {
 
     private Builder builder;
 
+
     public static Builder newBuilder() {
         return new Builder();
     }
 
-    public void executor() throws Exception {
+    public void executor() {
         ProtoInfoRegistry registry = new ProtoInfoRegistry();
         ProtoInfoReader reader = new ProtoInfoReader();
         reader.setRegistry(registry);
@@ -59,11 +61,7 @@ public class ProtoExecutor {
         }
 
         // 加载全部的接口
-        if (builder.getScanPackage() != null) {
-            reader.load(scanner.scanServices(builder.getScanPackage()));
-        } else {
-            reader.load(scanner.scanServices());
-        }
+        reader.load(scanner.scanServices(builder.getScanPackage()));
 
         // Proto文件生成器
         ProtoFileGenerator generator = new ProtoFileGenerator();
@@ -78,7 +76,7 @@ public class ProtoExecutor {
         if (builder.getGeneratePath() != null) {
             generator.generate(new File(builder.getGeneratePath()));
         } else {
-            generator.generate(projectPath.resolve("src/main/proto").toFile());
+            generator.generate(projectPath.resolve(builder.getGenerateBasePath()).toFile());
         }
     }
 
@@ -86,6 +84,7 @@ public class ProtoExecutor {
      * 获取项目所在路径
      */
     private Path getProjectPath(String projectName) {
+
         /*
          * 获取根项目绝对路径
          * 当项目为子模块，或者子子模块时，获取的路径都仅为根项目路径
@@ -167,14 +166,20 @@ public class ProtoExecutor {
          */
         private String generatePath;
 
+        /**
+         * 生成Proto文件的相对项目的路径
+         */
+        private String generateBasePath = "src/main/proto";
+
+
         public Builder setProjectName(String projectName) {
-            AssertUtil.hasText(projectName);
+            AssertUtils.hasText(projectName);
             this.projectName = projectName;
             return this;
         }
 
         public Builder setJarFile(String jarFile) {
-            AssertUtil.hasText(jarFile);
+            AssertUtils.hasText(jarFile);
             this.jarFile = jarFile;
             return this;
         }
@@ -185,40 +190,46 @@ public class ProtoExecutor {
         }
 
         public Builder setProjectBasePath(String projectBasePath) {
-            AssertUtil.hasText(projectBasePath);
+            AssertUtils.hasText(projectBasePath);
             this.projectBasePath = projectBasePath;
             return this;
         }
 
         public Builder setScanPackage(String scanPackage) {
-            AssertUtil.hasText(scanPackage);
+            AssertUtils.hasText(scanPackage);
             this.scanPackage = scanPackage;
             return this;
         }
 
         public Builder setExtendsInterface(Class<?> extendsInterface) {
-            AssertUtil.notNull(extendsInterface);
+            AssertUtils.notNull(extendsInterface);
             this.extendsInterface = extendsInterface;
             return this;
         }
 
         public Builder setNamePattern(String namePattern) {
-            AssertUtil.hasText(namePattern);
+            AssertUtils.hasText(namePattern);
             this.namePattern = namePattern;
             return this;
         }
 
         public Builder setComment(Class<? extends Annotation> commentClass, String commentMethodName) {
-            AssertUtil.notNull(commentClass);
-            AssertUtil.hasText(commentMethodName);
+            AssertUtils.notNull(commentClass);
+            AssertUtils.hasText(commentMethodName);
             this.commentClass = commentClass;
             this.commentMethodName = commentMethodName;
             return this;
         }
 
         public Builder setGeneratePath(String generatePath) {
-            AssertUtil.hasText(generatePath);
+            AssertUtils.hasText(generatePath);
             this.generatePath = generatePath;
+            return this;
+        }
+
+        public Builder setGenerateBasePath(String generateBasePath) {
+            AssertUtils.hasText(generateBasePath);
+            this.generateBasePath = generateBasePath;
             return this;
         }
 

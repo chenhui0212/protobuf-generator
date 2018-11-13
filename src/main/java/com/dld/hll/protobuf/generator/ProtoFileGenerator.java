@@ -1,6 +1,9 @@
 package com.dld.hll.protobuf.generator;
 
 import com.dld.hll.protobuf.generator.entity.*;
+import com.dld.hll.protobuf.generator.util.AssertUtils;
+import com.dld.hll.protobuf.generator.util.ProtoUtils;
+import com.dld.hll.protobuf.generator.util.StringUtils;
 import lombok.Setter;
 
 import java.io.BufferedWriter;
@@ -19,14 +22,28 @@ public class ProtoFileGenerator {
 
     private ProtoInfoRegistry registry;
 
-    public void assignCommon(Class<? extends Annotation> common, String method) throws NoSuchMethodException {
-        AbstractProtoInfo.common = common;
-        AbstractProtoInfo.method = common.getMethod(method);
+    private static final String SPACES_FOR_INDENTATION = "    ";
+    private String commonProtoFileName;
+
+
+    /**
+     * 指定全局注释类型和获取方法
+     */
+    public void assignCommon(Class<? extends Annotation> commentType, String valueMethod) {
+        ProtoCommentSupport.commentType = commentType;
+        try {
+            ProtoCommentSupport.valueMethod = commentType.getMethod(valueMethod);
+        } catch (NoSuchMethodException e) {
+            throw new RuntimeException(e);
+        }
     }
 
+    /**
+     * 生成proto文件
+     */
     public void generate(File generatePath) {
         // 生成共同类
-        writeToFile(generatePath, "Common.proto", generateCommon());
+        writeToFile(generatePath, getCommonProtoFileName() + ".proto", generateCommon());
 
         // 生成全部的接口类
         for (ProtoService protoService : registry.getProtoServices()) {
@@ -35,6 +52,60 @@ public class ProtoFileGenerator {
         }
     }
 
+    /*
+     * 获取 Common proto 文件名
+     */
+    private String getCommonProtoFileName() {
+        if (commonProtoFileName != null) {
+            return commonProtoFileName;
+        }
+
+        // 获取项目根目录名称
+        String userDir = System.getProperty("user.dir");
+        String rootDirName = userDir.substring(userDir.lastIndexOf(File.separator) + 1);
+
+        // 拼装文件名
+        StringBuilder rootProjectName = new StringBuilder();
+        for (String str : rootDirName.split("-")) {
+            rootProjectName.append(StringUtils.capitalize(str));
+        }
+        rootProjectName.append("Common");
+        return rootProjectName.toString();
+    }
+
+    /**
+     * 生成Common proto文件
+     */
+    private String generateCommon() {
+        StringBuilder buf = new StringBuilder();
+        buf.append(generateCommonHeader());
+
+        // 共同的类
+        for (ProtoObject protoObject : registry.getProtoObjectMap().values()) {
+            if (protoObject.getCitations() > 1) {
+                if (Enum.class.isAssignableFrom(protoObject.getClazz())) {
+                    buf.append(generateEnum(protoObject)).append("\n");
+                } else {
+                    buf.append(generateObject(protoObject)).append("\n");
+                }
+            }
+        }
+
+        // 共同泛型
+        for (ProtoGenericField genericField : registry.getGenericFieldMap().values()) {
+            if (genericField.getCitations() > 1) {
+                buf.append(generateGenericFieldObject(genericField)).append("\n");
+            }
+        }
+
+        // 空消息
+        buf.append(generateEmptyMessage()).append("\n");
+        return buf.toString();
+    }
+
+    /**
+     * 生成单个服务proto文件
+     */
     private String generateService(ProtoService protoService) {
         StringBuilder buf = new StringBuilder();
         buf.append(generateHeader(protoService));
@@ -43,10 +114,15 @@ public class ProtoFileGenerator {
         Collection<ProtoObject> protoObjects = protoService.getProtoObjectMap().values();
         buf.append(generateObjects(protoObjects));
 
-        // 生成服务接口描述
-        if (protoService.hasDescription()) {
-            buf.append(protoService.getDescription()).append("\n");
+        // 生成泛型类型
+        for (ProtoGenericField genericField : protoService.getGenericFieldMap().values()) {
+            if (genericField.getCitations() == 1) {
+                buf.append(generateGenericFieldObject(genericField)).append("\n");
+            }
         }
+
+        // 生成服务接口描述
+        generateComment(buf, protoService);
         buf.append("service ").append(protoService.getClazz().getSimpleName()).append(" {").append("\n");
         for (ProtoMethod protoMethod : protoService.getProtoMethods()) {
             buf.append(generateMethod(protoMethod));
@@ -55,42 +131,36 @@ public class ProtoFileGenerator {
         return buf.toString();
     }
 
-    private String generateCommon() {
-        StringBuilder buf = new StringBuilder();
-        buf.append(generateCommonHeader());
-
-        for (ProtoObject protoObject : registry.getCommonPOs().values()) {
-            buf.append(generateObject(protoObject)).append("\n");
-        }
-        for (ProtoFieldGeneric fieldGeneric : registry.getFieldGenerics().values()) {
-            buf.append(generateFieldGeneric(fieldGeneric)).append("\n");
-        }
-
-        buf.append(generateEmptyMessage()).append("\n");
-        return buf.toString();
-    }
-
+    /**
+     * 生成空消息（备用）
+     */
     private String generateEmptyMessage() {
         return "message Empty {\n}";
     }
 
-    public StringBuilder generateObjects(Collection<ProtoObject> protoObjects) {
+    /**
+     * 生成每个服务的全部proto对象
+     */
+    private StringBuilder generateObjects(Collection<ProtoObject> protoObjects) {
         StringBuilder buf = new StringBuilder();
         for (ProtoObject protoObject : protoObjects) {
-            if (Enum.class.isAssignableFrom(protoObject.getClazz())) {
-                buf.append(generateEnum(protoObject)).append("\n");
-            } else {
-                buf.append(generateObject(protoObject)).append("\n");
+            if (protoObject.getCitations() == 1) {
+                if (Enum.class.isAssignableFrom(protoObject.getClazz())) {
+                    buf.append(generateEnum(protoObject)).append("\n");
+                } else {
+                    buf.append(generateObject(protoObject)).append("\n");
+                }
             }
         }
         return buf;
     }
 
-    public StringBuilder generateObject(ProtoObject protoObject) {
+    /**
+     * 生成对象类型
+     */
+    private StringBuilder generateObject(ProtoObject protoObject) {
         StringBuilder buf = new StringBuilder();
-        if (protoObject.hasDescription()) {
-            buf.append(protoObject.getDescription()).append("\n");
-        }
+        generateComment(buf, protoObject);
         buf.append("message ").append(protoObject.getClazz().getSimpleName()).append(" {\n");
         int index = 1;
         for (ProtoField protoField : protoObject.getProtoFields()) {
@@ -100,11 +170,12 @@ public class ProtoFileGenerator {
         return buf;
     }
 
-    public StringBuilder generateEnum(ProtoObject protoEnum) {
+    /**
+     * 生成枚举类型
+     */
+    private StringBuilder generateEnum(ProtoObject protoEnum) {
         StringBuilder buf = new StringBuilder();
-        if (protoEnum.hasDescription()) {
-            buf.append(protoEnum.getDescription()).append("\n");
-        }
+        generateComment(buf, protoEnum);
         buf.append("enum ").append(protoEnum.getClazz().getSimpleName()).append(" {\n");
         buf.append("    UNSPECIFIED = 0; // always use a zero value here\n");
         int index = 1;
@@ -115,58 +186,95 @@ public class ProtoFileGenerator {
         return buf;
     }
 
-    public StringBuilder generateMethod(ProtoMethod protoMethod) {
+    /**
+     * 生成方法
+     */
+    private StringBuilder generateMethod(ProtoMethod protoMethod) {
         StringBuilder buf = new StringBuilder();
-        if (protoMethod.hasDescription()) {
-            buf.append("    ").append(protoMethod.getDescription()).append("\n");
-        }
-        buf.append("    ").append("rpc ").append(protoMethod.getName()).append(" (")
+        generateComment(buf, protoMethod, SPACES_FOR_INDENTATION);
+        buf.append(SPACES_FOR_INDENTATION).append("rpc ").append(protoMethod.getName()).append(" (")
                 .append(protoMethod.getParameterTypeName()).append(")")
                 .append(" returns (").append(protoMethod.getReturnTypeName()).append(");\n");
         return buf;
     }
 
-    public StringBuilder generateField(ProtoField protoField, int index) {
+    /**
+     * 生成字段
+     */
+    private StringBuilder generateField(ProtoField protoField, int index) {
         StringBuilder buf = new StringBuilder();
-        if (protoField.hasDescription()) {
-            buf.append("    ").append(protoField.getDescription()).append("\n");
-        }
-        buf.append("    ");
-        if (protoField.isCollection() || protoField.isMap()) {
-            buf.append(protoField.getGeneric().getProtoType());
-        } else {
+        generateComment(buf, protoField, SPACES_FOR_INDENTATION);
+        buf.append(SPACES_FOR_INDENTATION);
+        if (ProtoUtils.isNotGeneric(protoField.getFieldType())) {
             buf.append(protoField.getTypeName());
+        } else {
+            buf.append(generateGenericField(protoField.getGeneric()));
         }
         buf.append(" ").append(protoField.getName());
         buf.append(" = ").append(index).append(";\n");
         return buf;
     }
 
-    public StringBuilder generateEnumField(ProtoField protoField, int index) {
+    /**
+     * 生成枚举字段
+     */
+    private StringBuilder generateEnumField(ProtoField protoField, int index) {
         StringBuilder buf = new StringBuilder();
-        if (protoField.hasDescription()) {
-            buf.append("    ").append(protoField.getDescription()).append("\n");
-        }
-        buf.append("    ");
+        generateComment(buf, protoField, SPACES_FOR_INDENTATION);
+        buf.append(SPACES_FOR_INDENTATION);
         buf.append(protoField.getName());
         buf.append(" = ").append(index).append(";\n");
         return buf;
     }
 
-    private StringBuilder generateFieldGeneric(ProtoFieldGeneric protoFieldGeneric) {
+    /**
+     * 生成泛型内嵌对象
+     */
+    private StringBuilder generateGenericFieldObject(ProtoGenericField genericField) {
         StringBuilder buf = new StringBuilder();
-        String typeName = protoFieldGeneric.getTypeName();
+        String typeName = genericField.getTypeName();
         buf.append("message ").append(typeName).append(" {\n");
-        buf.append("    ");
-        buf.append(protoFieldGeneric.getProtoType());
-        char[] fieldName = typeName.toCharArray();
-        fieldName[0] += 32;
-        buf.append(" ").append(fieldName);
+        buf.append(SPACES_FOR_INDENTATION);
+        buf.append(generateGenericField(genericField));
+        buf.append(" ").append(StringUtils.uncapitalize(typeName));
         buf.append(" = ").append(1).append(";\n");
         buf.append("}\n");
         return buf;
     }
 
+    /**
+     * 生成泛型字段
+     */
+    private StringBuilder generateGenericField(ProtoGenericField genericField) {
+        StringBuilder buf = new StringBuilder();
+        if (ProtoUtils.isCollection(genericField.getType().getRawType())) {
+            buf.append("repeated ");
+            if (genericField.isNotGeneric()) {
+                buf.append(ProtoUtils.getTypeName(genericField.getParameterTypes().get(0), genericField.getProtoFieldTypes().get(0)));
+            } else {
+                buf.append(genericField.getNestedGeneric().getTypeName());
+            }
+        } else if (ProtoUtils.isMap(genericField.getType().getRawType())) {
+            AssertUtils.isTrue(genericField.getProtoFieldTypes() != null && genericField.getParameterTypes().size() > 0,
+                    "nestedGeneric field parse not right");
+            buf.append("map<");
+            if (genericField.isNotGeneric()) {
+                buf.append(ProtoUtils.getTypeName(genericField.getParameterTypes().get(0), genericField.getProtoFieldTypes().get(0)));
+                buf.append(", ");
+                buf.append(ProtoUtils.getTypeName(genericField.getParameterTypes().get(1), genericField.getProtoFieldTypes().get(1)));
+            } else {
+                buf.append(ProtoUtils.getTypeName(genericField.getParameterTypes().get(0), genericField.getProtoFieldTypes().get(0)));
+                buf.append(", ");
+                buf.append(genericField.getNestedGeneric().getTypeName());
+            }
+            buf.append(">");
+        }
+        return buf;
+    }
+
+    /**
+     * 生成服务头
+     */
     private StringBuilder generateHeader(ProtoService protoService) {
         StringBuilder buf = new StringBuilder();
         buf.append("syntax = \"proto3\"").append(";\n").append("\n");
@@ -175,27 +283,56 @@ public class ProtoFileGenerator {
         buf.append("option java_package = \"").append(packagePath).append(".grpc\";\n");
         buf.append("option java_outer_classname = \"").append(protoService.getClazz().getSimpleName())
                 .append("Class").append("\";\n");
-        buf.append("import \"Common.proto\";\n");
+        buf.append("import \"").append(getCommonProtoFileName()).append(".proto\";\n");
         buf.append("import \"google/protobuf/wrappers.proto\";\n\n");
         return buf;
     }
 
+    /**
+     * 生成Common头
+     */
     private StringBuilder generateCommonHeader() {
         StringBuilder buf = new StringBuilder();
         buf.append("syntax = \"proto3\"").append(";\n").append("\n");
         buf.append("option java_multiple_files = true;\n");
         buf.append("option java_package = \"").append(getCommonPackagePath()).append(".grpc\";\n");
-        buf.append("option java_outer_classname = \"").append("Common").append("Class").append("\";\n");
+        buf.append("option java_outer_classname = \"").append(getCommonProtoFileName()).append("Class").append("\";\n");
         buf.append("import \"google/protobuf/wrappers.proto\";\n\n");
         return buf;
     }
 
+    /**
+     * 生成注释
+     */
+    private <T extends ProtoCommentSupport> void generateComment(StringBuilder buf, T protoElement) {
+        generateComment(buf, protoElement, null);
+    }
+
+    /**
+     * 生成注释
+     */
+    private <T extends ProtoCommentSupport> void generateComment(StringBuilder buf, T protoElement, String prefix) {
+        String description = protoElement.getComment();
+        if (description != null) {
+            if (prefix != null) {
+                buf.append(prefix);
+            }
+            buf.append("// ").append(description).append("\n");
+        }
+    }
+
+    /**
+     * 获取Common proto文件生成路径
+     */
     private String getCommonPackagePath() {
         List<ProtoService> protoServices = registry.getProtoServices();
-        AssertUtil.notEmpty(protoServices, "not found any service interfaces");
+        AssertUtils.notEmpty(protoServices, "not found any service interfaces");
         return protoServices.get(0).getClazz().getPackage().getName();
     }
 
+    /**
+     * 写入文件
+     */
     private void writeToFile(File path, String fileName, String content) {
         if (!path.exists()) {
             boolean result = path.mkdirs();

@@ -1,33 +1,37 @@
 package com.dld.hll.protobuf.generator.entity;
 
-import lombok.Data;
-import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
 
+import java.lang.reflect.Type;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
  * @author Chen Hui
  */
-@Data
-@EqualsAndHashCode(callSuper = true)
-public class ProtoService extends AbstractProtoInfo {
+@Getter
+@Setter
+public class ProtoService extends ProtoCommentSupport {
+
     private Class<?> clazz;
 
     /**
-     * 继承接口（暂时未使用）
-     */
-    private Class<?>[] interfaces;
-
-    /**
-     * 解析后的方法
+     * 全部方法
      */
     private List<ProtoMethod> protoMethods;
 
     /**
-     * 全部需要生成的对象（剔除父类中的，当前类已经存在的，以及与其它接口类中定义的）
+     * 当前服务接口中全部解析类（不包括其它服务已解析的）
      */
-    private Map<Class<?>, ProtoObject> protoObjectMap;
+    private Map<Class<?>, ProtoObject> protoObjectMap = new HashMap<>();
+
+    /**
+     * 当前服务接口中全部解析泛型类（不包括其它服务已解析的）
+     */
+    private Map<Type, ProtoGenericField> genericFieldMap = new HashMap<>();
+
 
     public ProtoService(Class<?> clazz) {
         this.clazz = clazz;
@@ -39,12 +43,7 @@ public class ProtoService extends AbstractProtoInfo {
     }
 
     @Override
-    public String getDescription() {
-        return getDescription(clazz);
-    }
-
-    @Override
-    public boolean hasDescription() {
-        return hasDescription(clazz);
+    public String getComment() {
+        return getComment(clazz);
     }
 }

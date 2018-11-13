@@ -12,9 +12,11 @@ import java.util.List;
  * @author Chen Hui
  */
 public class ProjectScanner extends SelectableScanner {
+
     private Path scanPath;
     private int PrePathLength;
     private static final String DEFAULT_PROJECT_BASE_PATH = "src/main/java";
+
 
     public ProjectScanner(Path projectPath) {
         this(projectPath, DEFAULT_PROJECT_BASE_PATH);
@@ -28,11 +30,7 @@ public class ProjectScanner extends SelectableScanner {
         }
     }
 
-    public List<Class<?>> scanServices() throws ClassNotFoundException {
-        return scanServices(null);
-    }
-
-    public List<Class<?>> scanServices(String scanPackage) throws ClassNotFoundException {
+    public List<Class<?>> scanServices(String scanPackage) {
         if (scanPackage != null) {
             scanPath = scanPath.resolve(scanPackage);
             if (!Files.exists(scanPath)) {
@@ -51,7 +49,7 @@ public class ProjectScanner extends SelectableScanner {
      * @param classes  存放查询结果的集合
      * @param scanPath 搜索目录
      */
-    private void scanRecursively(List<Class<?>> classes, File scanPath) throws ClassNotFoundException {
+    private void scanRecursively(List<Class<?>> classes, File scanPath) {
         File[] subFiles = scanPath.listFiles(pathname ->
                 (pathname.isDirectory() || (pathname.getName().endsWith(".java") &&
                         !pathname.getName().equals("package-info.java"))));
@@ -65,11 +63,14 @@ public class ProjectScanner extends SelectableScanner {
             } else {
                 String className = file.getAbsolutePath().substring(PrePathLength + 1)
                         .replace(File.separator, ".");
-
-                // 删除后缀名 (.java)
-                Class<?> clazz = Class.forName(className.substring(0, className.length() - 5));
-                if (clazz.isInterface() && isAcceptable(clazz)) {
-                    classes.add(clazz);
+                try {
+                    // 删除后缀名 (.java)
+                    Class<?> clazz = Class.forName(className.substring(0, className.length() - 5));
+                    if (clazz.isInterface() && isAcceptable(clazz)) {
+                        classes.add(clazz);
+                    }
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
                 }
             }
         }

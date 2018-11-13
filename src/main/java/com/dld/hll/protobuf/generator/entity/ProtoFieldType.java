@@ -1,8 +1,11 @@
 package com.dld.hll.protobuf.generator.entity;
 
+import lombok.AllArgsConstructor;
+
 /**
  * @author Chen Hui
  */
+@AllArgsConstructor
 public enum ProtoFieldType {
     DOUBLE("double"),
     DOUBLE_VALUE("google.protobuf.DoubleValue"),
@@ -16,19 +19,15 @@ public enum ProtoFieldType {
     BOOL_VALUE("google.protobuf.BoolValue"),
     STRING("string"),
     STRING_VALUE("google.protobuf.StringValue"),
-    BIG_DECIMAL("google.protobuf.StringValue"),
-    LOCAL_DATE("google.protobuf.StringValue"),
-    LOCAL_DATETIME("google.protobuf.StringValue"),
-    LOCAL_TIME("google.protobuf.StringValue"),
-    TIMESTAMP("google.protobuf.StringValue"),
+    BIG_DECIMAL("string"),
+    LOCAL_DATE("string"),
+    LOCAL_DATETIME("string"),
+    LOCAL_TIME("string"),
+    TIMESTAMP("string"),
     ENUM("enum"),
     OBJECT("message");
 
     private String name;
-
-    ProtoFieldType(String name) {
-        this.name = name;
-    }
 
     public String getName() {
         return name;

@@ -1,0 +1,74 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "com.dld.hll.protobuf.generator.service.grpc";
+option java_outer_classname = "ProtobufGeneratorCommonClass";
+import "google/protobuf/wrappers.proto";
+
+enum SexEnum {
+    UNSPECIFIED = 0; // always use a zero value here
+    MALE = 1;
+    FEMALE = 2;
+}
+
+message UserQueryReq {
+}
+
+message UserVO {
+    // 用户ID
+    google.protobuf.Int64Value id = 1;
+    // 用户名
+    google.protobuf.StringValue name = 2;
+    // 性别
+    SexEnum sex = 3;
+    // 公司列表
+    repeated CompanyVO companyList = 4;
+}
+
+message CompanyVO {
+    // 公司名称
+    google.protobuf.StringValue name = 1;
+    // 公司规模
+    int32 scale = 2;
+    // 子公司
+    CompanyVO sub = 3;
+    // 子公司
+    repeated CompanyVO subs = 4;
+    // 子公司
+    repeated ListCompanyVO companyList = 5;
+}
+
+message RequestHeader {
+    // 追踪ID
+    google.protobuf.StringValue trcId = 1;
+    // 远程请求IP地址
+    google.protobuf.StringValue remoteIp = 2;
+}
+
+message UserBaseReq {
+    // 用户ID
+    google.protobuf.Int64Value id = 1;
+}
+
+message TestVO {
+    google.protobuf.StringValue test = 1;
+}
+
+message BaseReq {
+    // 请求头
+    RequestHeader header = 1;
+}
+
+message BaseResp {
+    // 返回码
+    google.protobuf.StringValue resCode = 1;
+    // 返回信息
+    google.protobuf.StringValue resMsg = 2;
+}
+
+message ListCompanyVO {
+    repeated CompanyVO listCompanyVO = 1;
+}
+
+message Empty {
+}

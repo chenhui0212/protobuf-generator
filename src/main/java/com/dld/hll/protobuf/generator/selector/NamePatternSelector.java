@@ -12,6 +12,7 @@ public class NamePatternSelector implements ServiceSelector {
 
     private String pattern;
 
+
     @Override
     public boolean accept(Class<?> serviceInterface) {
         return Pattern.matches(pattern, serviceInterface.getSimpleName());

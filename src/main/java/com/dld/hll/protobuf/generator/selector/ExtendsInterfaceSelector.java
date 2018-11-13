@@ -10,6 +10,7 @@ public class ExtendsInterfaceSelector implements ServiceSelector {
 
     private Class<?> extendsInterface;
 
+
     @Override
     public boolean accept(Class<?> serviceInterface) {
         Class<?>[] interfaces = serviceInterface.getInterfaces();

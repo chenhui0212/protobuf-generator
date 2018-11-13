@@ -1,0 +1,68 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "com.dld.hll.protobuf.generator.service.grpc";
+option java_outer_classname = "UserServiceClass";
+import "ProtobufGeneratorCommon.proto";
+import "google/protobuf/wrappers.proto";
+
+message GenericReq {
+    repeated ListString listList = 1;
+    repeated MapStringString listMap = 2;
+    map<google.protobuf.StringValue, ListString> mapList = 3;
+    map<google.protobuf.StringValue, MapStringString> mapMap = 4;
+}
+
+message UserListQueryResp {
+    repeated UserVO user = 1;
+    repeated TestVO testVOList = 2;
+}
+
+message GenericResp {
+    repeated ListString listList = 1;
+    repeated MapStringString listMap = 2;
+    map<google.protobuf.StringValue, ListString> mapList = 3;
+    map<google.protobuf.StringValue, MapStringString> mapMap = 4;
+}
+
+message UserAddReq {
+    // 用户名称
+    google.protobuf.StringValue name = 1;
+    // 密码
+    google.protobuf.StringValue password = 2;
+    // 性别
+    SexEnum sex = 3;
+    // 生日
+    string birthday = 4;
+}
+
+message UserQueryResp {
+    // 用户信息
+    UserVO user = 1;
+}
+
+message MapStringString {
+    map<google.protobuf.StringValue, google.protobuf.StringValue> mapStringString = 1;
+}
+
+message ListListCompanyVO {
+    repeated ListCompanyVO listListCompanyVO = 1;
+}
+
+message ListString {
+    repeated google.protobuf.StringValue listString = 1;
+}
+
+// 用户基础服务
+service UserService {
+    // 查询用户信息
+    rpc add (UserAddReq) returns (BaseResp);
+    // 查询用户信息
+    rpc query (UserQueryReq) returns (UserQueryResp);
+    // 测试空请求空返回值
+    rpc test (Empty) returns (Empty);
+    // 测试List嵌套
+    rpc testList (GenericReq) returns (GenericResp);
+    // 查询全部用户信息
+    rpc queryAll (BaseReq) returns (UserListQueryResp);
+}

@@ -11,7 +11,9 @@ import java.util.List;
  */
 @Getter
 public abstract class SelectableScanner implements ProtoInfoScanner {
+
     private List<ServiceSelector> selectors;
+
 
     public void addSelector(ServiceSelector selector) {
         if (selectors == null) {

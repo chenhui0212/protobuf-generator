@@ -1,27 +1,36 @@
 package com.dld.hll.protobuf.generator.entity;
 
-import lombok.Data;
-import lombok.EqualsAndHashCode;
+import com.dld.hll.protobuf.generator.util.ProtoUtils;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.lang.reflect.Field;
-import java.util.Collection;
-import java.util.Map;
 
 /**
  * @author Chen Hui
  */
-@Data
-@EqualsAndHashCode(callSuper = true)
-public class ProtoField extends AbstractProtoInfo {
-    private Class<?> clazz;
+@Getter
+@Setter
+public class ProtoField extends ProtoCommentSupport {
+
     private Field field;
+
+    /**
+     * 字段类型
+     */
+    private Class<?> fieldType;
     private ProtoFieldType protoFieldType;
 
     /**
-     * Collection<?> 和 Map<?, Collection<?>>
-     * 只处理集合类型的范型，Map中的不能出现范型类型
+     * 字段为对象类型
      */
-    private ProtoFieldGeneric generic;
+    private ProtoObject protoObject;
+
+    /**
+     * 字段为范型类型
+     */
+    private ProtoGenericField generic;
+
 
     public ProtoField(Field field) {
         this.field = field;
@@ -33,33 +42,27 @@ public class ProtoField extends AbstractProtoInfo {
     }
 
     @Override
-    public String getDescription() {
-        return getDescription(field);
+    public String getComment() {
+        return getComment(field);
     }
 
-    @Override
-    public boolean hasDescription() {
-        return hasDescription(field);
-    }
-
-    public boolean isCollection() {
-        return Collection.class.isAssignableFrom(field.getType());
-    }
-
-    public boolean isMap() {
-        return Map.class.isAssignableFrom(field.getType());
-    }
-
+    /**
+     * 字段类型名称
+     */
     public String getTypeName() {
-        if (clazz != null) {
-            if (protoFieldType == ProtoFieldType.OBJECT || protoFieldType == ProtoFieldType.ENUM) {
-                return clazz.getSimpleName();
-            } else {
+        if (isNotGeneric()) {
+            if (ProtoUtils.isBasicType(protoFieldType)) {
                 return protoFieldType.getName();
+            } else {
+                return fieldType.getSimpleName();
             }
-        } else if (generic != null) {
-            return generic.getTypeName();
+        } else {
+            // 泛型没有类型名，在生成文件时再做处理
+            return null;
         }
-        return null;
+    }
+
+    private boolean isNotGeneric() {
+        return generic == null;
     }
 }

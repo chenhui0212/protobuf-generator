@@ -1,4 +1,4 @@
-package com.dld.hll.protobuf.generator;
+package com.dld.hll.protobuf.generator.util;
 
 import java.util.Collection;
 import java.util.Map;
@@ -6,7 +6,7 @@ import java.util.Map;
 /**
  * Created by kevin.luy@alipay.com on 16/9/19.
  */
-public abstract class AssertUtil {
+public abstract class AssertUtils {
 
     /**
      * Assert a boolean expression, throwing <code>IllegalArgumentException</code>
@@ -66,7 +66,7 @@ public abstract class AssertUtil {
 
     /**
      * Assert that an object is not <code>null</code> .
-     * <pre class="code">Assert.notNull(clazz, "The class must not be null");</pre>
+     * <pre class="code">Assert.notNull(fieldType, "The class must not be null");</pre>
      *
      * @param object the object to check
      * @param message the exception message to use if the assertion fails
@@ -81,7 +81,7 @@ public abstract class AssertUtil {
 
     /**
      * Assert that an object is not <code>null</code> .
-     * <pre class="code">Assert.notNull(clazz);</pre>
+     * <pre class="code">Assert.notNull(fieldType);</pre>
      *
      * @param object the object to check
      *
@@ -221,7 +221,7 @@ public abstract class AssertUtil {
      * @param clazz the required class
      * @param obj the object to check
      *
-     * @throws IllegalArgumentException if the object is not an instance of clazz
+     * @throws IllegalArgumentException if the object is not an instance of fieldType
      * @see Class#isInstance
      */
     public static void isInstanceOf(Class clazz, Object obj) {
@@ -238,7 +238,7 @@ public abstract class AssertUtil {
      * used to provide context. It should normally end in a ": " or ". " so that the function generate message looks ok
      * when prepended to it.
      *
-     * @throws IllegalArgumentException if the object is not an instance of clazz
+     * @throws IllegalArgumentException if the object is not an instance of fieldType
      * @see Class#isInstance
      */
     public static void isInstanceOf(Class type, Object obj, String message) {

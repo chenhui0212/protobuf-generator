@@ -1,17 +1,25 @@
 package com.dld.hll.protobuf.generator.entity;
 
-import lombok.Data;
-import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.util.List;
 
 /**
+ * 对应 ProtoFieldType 中 {@link ProtoFieldType#ENUM} 和 OBJECT{@link ProtoFieldType#OBJECT} 类型
+ *
  * @author Chen Hui
  */
-@Data
-@EqualsAndHashCode(callSuper = true)
-public class ProtoObject extends AbstractProtoInfo {
+@Getter
+@Setter
+public class ProtoObject extends ProtoCommentSupport {
+
     private Class<?> clazz;
+
+    /**
+     * 被引用次数
+     */
+    private int citations = 1;
 
     /**
      * 父类
@@ -23,10 +31,6 @@ public class ProtoObject extends AbstractProtoInfo {
      */
     List<ProtoField> protoFields;
 
-    /**
-     * 对象类型字段
-     */
-    List<ProtoObject> protoFieldObjects;
 
     public ProtoObject(Class<?> clazz) {
         this.clazz = clazz;
@@ -38,12 +42,11 @@ public class ProtoObject extends AbstractProtoInfo {
     }
 
     @Override
-    public String getDescription() {
-        return getDescription(clazz);
+    public String getComment() {
+        return getComment(clazz);
     }
 
-    @Override
-    public boolean hasDescription() {
-        return hasDescription(clazz);
+    public void increaseCitations() {
+        citations++;
     }
 }

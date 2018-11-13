@@ -5,8 +5,4 @@ package com.dld.hll.protobuf.generator.entity;
  */
 public interface ProtoInfo {
     String getName();
-
-    String getDescription();
-
-    boolean hasDescription();
 }
