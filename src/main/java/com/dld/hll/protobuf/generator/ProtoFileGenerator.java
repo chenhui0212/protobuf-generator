@@ -163,11 +163,27 @@ public class ProtoFileGenerator {
         generateComment(buf, protoObject);
         buf.append("message ").append(protoObject.getClazz().getSimpleName()).append(" {\n");
         int index = 1;
+        index = generateSuperObject(protoObject, buf, index);
         for (ProtoField protoField : protoObject.getProtoFields()) {
             buf.append(generateField(protoField, index++));
         }
         buf.append("}\n");
         return buf;
+    }
+
+    /**
+     * 生成对象父类字段
+     */
+    private int generateSuperObject(ProtoObject protoObject, StringBuilder buf, int index) {
+        ProtoObject superProtoObject = protoObject.getSuperProtoObject();
+        if (superProtoObject != null) {
+            // 优先生成上层父类
+            index = generateSuperObject(superProtoObject, buf, index);
+            for (ProtoField protoField : superProtoObject.getProtoFields()) {
+                buf.append(generateField(protoField, index++));
+            }
+        }
+        return index;
     }
 
     /**
