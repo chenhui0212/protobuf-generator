@@ -51,8 +51,13 @@ public class JarFileScanner extends SelectableScanner {
                         continue;
                     }
 
-                    // 删除后缀名 (.class)
-                    Class<?> clazz = Class.forName(className.substring(0, className.length() - 6), true, jcl);
+                    // 加载
+                    Class<?> clazz;
+                    if (jcl == null) {
+                        clazz = Class.forName(className.substring(0, className.length() - 6));
+                    } else {
+                        clazz = Class.forName(className.substring(0, className.length() - 6), true, jcl);
+                    }
                     if (clazz.isInterface() && isAcceptable(clazz)) {
                         classes.add(clazz);
                     }

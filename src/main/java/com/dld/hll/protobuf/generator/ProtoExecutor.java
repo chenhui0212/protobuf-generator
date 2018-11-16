@@ -130,6 +130,7 @@ public class ProtoExecutor {
 
         /**
          * 是否需要加载Jar文件
+         * 如果外部完成环境加载，可以不用再次加载
          */
         private boolean isNeedLoadJarFile = true;
 
@@ -140,7 +141,7 @@ public class ProtoExecutor {
         private String projectBasePath;
 
         /**
-         * 扫描Jar包内指定路径
+         * 扫描Jar包或者项目基础路径内指定路径
          */
         private String scanPackage;
 
