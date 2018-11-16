@@ -1,5 +1,6 @@
 package com.dld.hll.protobuf.generator.service.vo;
 
+import com.dld.hll.protobuf.generator.annotation.Comment;
 import lombok.Data;
 
 /**
@@ -7,5 +8,7 @@ import lombok.Data;
  */
 @Data
 public class TestVO {
+
+    @Comment("测试")
     private String test;
 }
