@@ -46,7 +46,7 @@ public class JarFileScanner extends SelectableScanner {
             JarEntry entry;
             while ((entry = inputStream.getNextJarEntry()) != null) {
                 if (entry.getName().endsWith(".class") && !entry.getName().contains("$")) {
-                    String className = entry.getName().replace(File.separator, ".");
+                    String className = entry.getName().replace("/", ".");
                     if (scanPackage != null && !className.startsWith(scanPackage)) {
                         continue;
                     }
