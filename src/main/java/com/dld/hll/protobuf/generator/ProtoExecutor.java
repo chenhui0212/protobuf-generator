@@ -6,6 +6,7 @@ import com.dld.hll.protobuf.generator.scanner.SelectableScanner;
 import com.dld.hll.protobuf.generator.selector.ExtendsInterfaceSelector;
 import com.dld.hll.protobuf.generator.selector.NamePatternSelector;
 import com.dld.hll.protobuf.generator.util.AssertUtils;
+import com.dld.hll.protobuf.generator.util.StringUtils;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -34,7 +35,10 @@ public class ProtoExecutor {
         reader.setRegistry(registry);
 
         // 获取当前项目路径
-        Path projectPath = getProjectPath(builder.getProjectName());
+        Path projectPath = Paths.get(builder.getProjectPath());
+        if (!Files.exists(projectPath)) {
+            throw new RuntimeException("Path [" + projectPath + "] doesn't exists!");
+        }
 
         // 扫描器
         SelectableScanner scanner;
@@ -66,6 +70,7 @@ public class ProtoExecutor {
         // Proto文件生成器
         ProtoFileGenerator generator = new ProtoFileGenerator();
         generator.setRegistry(registry);
+        generator.setCommonProtoFileName(getCommonProtoFileName(builder.getProjectName()));
 
         // 指定注释注解，及获取注释对应的方法
         if (builder.getCommentClass() != null) {
@@ -81,43 +86,23 @@ public class ProtoExecutor {
     }
 
     /**
-     * 获取项目所在路径
+     * 获取生成的common proto文件名
      */
-    private Path getProjectPath(String projectName) {
-
-        /*
-         * 获取根项目绝对路径
-         * 当项目为子模块，或者子子模块时，获取的路径都仅为根项目路径
-         */
-        String userDir = System.getProperty("user.dir");
-
-        /*
-         * 获取扫描路径
-         * 由于 userDir 仅为根项目的路径，如果指定项目为子模块时，需要追加项目名
-         */
-        Path projectPath;
-        if (projectName == null || projectName.equals("")) {
-            projectPath = Paths.get(userDir);
-        } else {
-            if (userDir.endsWith(projectName)) {
-                projectPath = Paths.get(userDir);
-            } else {
-                projectPath = Paths.get(userDir, projectName);
-
-                // 确认目录是否存在
-                if (!Files.exists(projectPath)) {
-                    throw new RuntimeException("Path [" + projectPath + "] doesn't exists!");
-                }
-            }
+    private String getCommonProtoFileName(String projectName) {
+        // 拼装文件名
+        StringBuilder commonFileName = new StringBuilder();
+        for (String str : projectName.split("[-_]")) {
+            commonFileName.append(StringUtils.capitalize(str));
         }
-        return projectPath;
+        commonFileName.append("Common");
+        return commonFileName.toString();
     }
 
     @Getter
     public static final class Builder {
+
         /**
-         * 当项目基础路径未传递时，通过该属性获取
-         * 当项目为子模块时，System.getProperty("user.dir") 只能获取根项目的路径
+         * 必传
          * 当项目为子模块的子模块时，需要传除根项目的全部子模块名
          */
         private String projectName;
@@ -133,6 +118,11 @@ public class ProtoExecutor {
          * 如果外部完成环境加载，可以不用再次加载
          */
         private boolean isNeedLoadJarFile = true;
+
+        /**
+         * 指定项目路径
+         */
+        private String projectPath;
 
         /**
          * 指定项目基础路径
@@ -176,6 +166,12 @@ public class ProtoExecutor {
         public Builder setProjectName(String projectName) {
             AssertUtils.hasText(projectName);
             this.projectName = projectName;
+            return this;
+        }
+
+        public Builder setProjectPath(String projectPath) {
+            AssertUtils.hasText(projectPath);
+            this.projectPath = projectPath;
             return this;
         }
 
@@ -235,6 +231,14 @@ public class ProtoExecutor {
         }
 
         public ProtoExecutor build() {
+            if (projectName == null) {
+                throw new RuntimeException("Must set parameter [projectName]");
+            }
+
+            if (projectPath == null) {
+                throw new RuntimeException("Must set parameter [projectPath]");
+            }
+
             ProtoExecutor executor = new ProtoExecutor();
             executor.setBuilder(this);
             return executor;
