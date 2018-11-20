@@ -42,35 +42,35 @@ public class ProtoFileGenerator {
      * 生成proto文件
      */
     public void generate(File generatePath) {
+        // 如果路径不存在，则创建目录
+        if (!generatePath.exists()) {
+            boolean result = generatePath.mkdirs();
+            if (!result) {
+                throw new RuntimeException("Could not make directory -> " + generatePath.getAbsolutePath());
+            }
+        }
+
+        // 如果存在，则删除目录下全部proto文件
+        else {
+            File[] protoFiles = generatePath.listFiles((file, s) -> s.endsWith(".proto"));
+            if (protoFiles != null) {
+                for (File pf : protoFiles) {
+                    boolean result = pf.delete();
+                    if (!result) {
+                        throw new RuntimeException("File could not be deleted -> " + pf.getAbsolutePath());
+                    }
+                }
+            }
+        }
+
         // 生成共同类
-        writeToFile(generatePath, getCommonProtoFileName() + ".proto", generateCommon());
+        writeToFile(generatePath, commonProtoFileName + ".proto", generateCommon());
 
         // 生成全部的接口类
         for (ProtoService protoService : registry.getProtoServices()) {
             writeToFile(generatePath, protoService.getName() + ".proto",
                     generateService(protoService));
         }
-    }
-
-    /*
-     * 获取 Common proto 文件名
-     */
-    private String getCommonProtoFileName() {
-        if (commonProtoFileName != null) {
-            return commonProtoFileName;
-        }
-
-        // 获取项目根目录名称
-        String userDir = System.getProperty("user.dir");
-        String rootDirName = userDir.substring(userDir.lastIndexOf(File.separator) + 1);
-
-        // 拼装文件名
-        StringBuilder rootProjectName = new StringBuilder();
-        for (String str : rootDirName.split("-")) {
-            rootProjectName.append(StringUtils.capitalize(str));
-        }
-        rootProjectName.append("Common");
-        return rootProjectName.toString();
     }
 
     /**
@@ -299,7 +299,7 @@ public class ProtoFileGenerator {
         buf.append("option java_package = \"").append(packagePath).append(".grpc\";\n");
         buf.append("option java_outer_classname = \"").append(protoService.getClazz().getSimpleName())
                 .append("Class").append("\";\n");
-        buf.append("import \"").append(getCommonProtoFileName()).append(".proto\";\n");
+        buf.append("import \"").append(commonProtoFileName).append(".proto\";\n\n");
         buf.append("import \"google/protobuf/wrappers.proto\";\n\n");
         return buf;
     }
@@ -312,7 +312,7 @@ public class ProtoFileGenerator {
         buf.append("syntax = \"proto3\"").append(";\n").append("\n");
         buf.append("option java_multiple_files = true;\n");
         buf.append("option java_package = \"").append(getCommonPackagePath()).append(".grpc\";\n");
-        buf.append("option java_outer_classname = \"").append(getCommonProtoFileName()).append("Class").append("\";\n");
+        buf.append("option java_outer_classname = \"").append(commonProtoFileName).append("Class").append("\";\n\n");
         buf.append("import \"google/protobuf/wrappers.proto\";\n\n");
         return buf;
     }
@@ -342,7 +342,7 @@ public class ProtoFileGenerator {
      */
     private String getCommonPackagePath() {
         List<ProtoService> protoServices = registry.getProtoServices();
-        AssertUtils.notEmpty(protoServices, "not found any service interfaces");
+        AssertUtils.notEmpty(protoServices, "could not found in any service interfaces");
         return protoServices.get(0).getClazz().getPackage().getName();
     }
 
@@ -350,25 +350,12 @@ public class ProtoFileGenerator {
      * 写入文件
      */
     private void writeToFile(File path, String fileName, String content) {
-        if (!path.exists()) {
-            boolean result = path.mkdirs();
-            if (!result) {
-                System.out.println("无法创建基础目录：" + path.getAbsolutePath());
-            }
-        }
-
         File file = new File(path, fileName);
-        if (file.exists()) {
-            boolean result = file.delete();
-            if (!result) {
-                System.out.println("文件无法被删除：" + file.getAbsolutePath());
-            }
-        }
-
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
             writer.write(content);
         } catch (IOException e) {
             e.printStackTrace();
+            throw new RuntimeException("Could not write proto file [" + e.getMessage() + "]");
         }
     }
 }
