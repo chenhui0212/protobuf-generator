@@ -14,22 +14,19 @@ public class ExtendsInterfaceSelector implements ServiceSelector {
     @Override
     public boolean accept(Class<?> serviceInterface) {
         Class<?>[] interfaces = serviceInterface.getInterfaces();
-        if (interfaces.length == 0) {
-            return false;
-        }
+        if (interfaces.length != 0) {
+            for (Class<?> inf : interfaces) {
+                if (inf == extendsInterface) {
+                    return true;
+                }
+            }
 
-        for (Class<?> inf : interfaces) {
-            if (inf == extendsInterface) {
-                return true;
+            for (Class<?> inf : interfaces) {
+                if (accept(inf)) {
+                    return true;
+                }
             }
         }
-
-        for (Class<?> inf : interfaces) {
-            if (accept(inf)) {
-                return true;
-            }
-        }
-
         return false;
     }
 }

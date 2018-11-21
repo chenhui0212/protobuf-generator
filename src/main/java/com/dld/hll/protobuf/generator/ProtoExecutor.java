@@ -35,9 +35,11 @@ public class ProtoExecutor {
         reader.setRegistry(registry);
 
         // 获取当前项目路径
-        Path projectPath = Paths.get(builder.getProjectPath());
-        if (!Files.exists(projectPath)) {
-            throw new RuntimeException("Path [" + projectPath + "] doesn't exists!");
+        Path projectPath;
+        if (builder.getProjectPath() != null) {
+            projectPath = builder.getProjectPath();
+        } else {
+            projectPath = getProjectPath(builder.getProjectName());
         }
 
         // 扫描器
@@ -86,6 +88,34 @@ public class ProtoExecutor {
     }
 
     /**
+     * 获取项目所在路径
+     */
+    private Path getProjectPath(String projectName) {
+
+        /*
+         * 获取根项目绝对路径
+         */
+        String userDir = System.getProperty("user.dir");
+
+        /*
+         * 获取指定项目名项目路径
+         * 由于 userDir 仅为根项目的路径，如果指定项目为子模块时，需要追加项目名
+         */
+        Path projectPath;
+        if (userDir.endsWith(projectName)) {
+            projectPath = Paths.get(userDir);
+        } else {
+            projectPath = Paths.get(userDir, projectName);
+
+            // 确认目录是否存在
+            if (!Files.exists(projectPath)) {
+                throw new RuntimeException("Path [" + projectPath + "] doesn't exists!");
+            }
+        }
+        return projectPath;
+    }
+
+    /**
      * 获取生成的common proto文件名
      */
     private String getCommonProtoFileName(String projectName) {
@@ -122,7 +152,7 @@ public class ProtoExecutor {
         /**
          * 指定项目路径
          */
-        private String projectPath;
+        private Path projectPath;
 
         /**
          * 指定项目基础路径
@@ -171,7 +201,10 @@ public class ProtoExecutor {
 
         public Builder setProjectPath(String projectPath) {
             AssertUtils.hasText(projectPath);
-            this.projectPath = projectPath;
+            this.projectPath = Paths.get(projectPath);
+            if (!Files.exists(this.projectPath)) {
+                throw new RuntimeException("Path [" + projectPath + "] doesn't exists!");
+            }
             return this;
         }
 
@@ -232,11 +265,7 @@ public class ProtoExecutor {
 
         public ProtoExecutor build() {
             if (projectName == null) {
-                throw new RuntimeException("Must set parameter [projectName]");
-            }
-
-            if (projectPath == null) {
-                throw new RuntimeException("Must set parameter [projectPath]");
+                throw new RuntimeException("Must pass parameter [projectName]");
             }
 
             ProtoExecutor executor = new ProtoExecutor();
