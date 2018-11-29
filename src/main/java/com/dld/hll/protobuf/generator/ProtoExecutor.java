@@ -69,9 +69,14 @@ public class ProtoExecutor {
         // 加载全部的接口
         reader.load(scanner.scanServices(builder.getScanPackage()));
 
+        // 生成目录
+        File generatePath = builder.getGeneratePath() != null ? new File(builder.getGeneratePath()) :
+                projectPath.resolve(builder.getGenerateBasePath()).toFile();
+
         // Proto文件生成器
         ProtoFileGenerator generator = new ProtoFileGenerator();
         generator.setRegistry(registry);
+        generator.setGeneratePath(generatePath);
         generator.setCommonProtoFileName(getCommonProtoFileName(builder.getProjectName()));
 
         // 指定注释注解，及获取注释对应的方法
@@ -80,11 +85,7 @@ public class ProtoExecutor {
         }
 
         // 生成Proto文件
-        if (builder.getGeneratePath() != null) {
-            generator.generate(new File(builder.getGeneratePath()));
-        } else {
-            generator.generate(projectPath.resolve(builder.getGenerateBasePath()).toFile());
-        }
+        generator.generate();
     }
 
     /**
