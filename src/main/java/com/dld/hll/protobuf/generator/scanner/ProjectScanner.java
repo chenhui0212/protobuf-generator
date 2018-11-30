@@ -13,66 +13,76 @@ import java.util.List;
  */
 public class ProjectScanner extends SelectableScanner {
 
+    /**
+     * 项目路径 + 类似 Maven Project directory layout (src/main/java) + scanPackage
+     */
     private Path scanPath;
-    private int PrePathLength;
-    private static final String DEFAULT_PROJECT_BASE_PATH = "src/main/java";
+
+    /**
+     * 项目路径 + 类似 Maven Project directory(src/main/java) 长度
+     */
+    private int projectJavaPathLength;
 
 
-    public ProjectScanner(Path projectPath) {
-        this(projectPath, DEFAULT_PROJECT_BASE_PATH);
-    }
-
-    public ProjectScanner(Path projectPath, String projectBasePath) {
-        scanPath = projectPath.resolve(projectBasePath);
-        PrePathLength = scanPath.toFile().getAbsolutePath().length();
-        if (!Files.exists(scanPath)) {
-            throw new RuntimeException("The scan path [" + scanPath + "] doesn't exists!");
+    public ProjectScanner(Path projectJavaPath, String scanPackage) {
+        this.projectJavaPathLength = projectJavaPath.toFile().getAbsolutePath().length();
+        this.scanPath = projectJavaPath.resolve(scanPackage);
+        if (!Files.exists(this.scanPath)) {
+            throw new RuntimeException("The scan path [" + this.scanPath + "] doesn't exists!");
         }
     }
 
-    public List<Class<?>> scanServices(String scanPackage) {
-        if (scanPackage != null) {
-            scanPath = scanPath.resolve(scanPackage);
-            if (!Files.exists(scanPath)) {
-                throw new RuntimeException("The scan package [" + scanPackage + "] doesn't exists!");
-            }
-        }
-
+    @Override
+    public List<Class<?>> scanServices() {
         ArrayList<Class<?>> classes = new ArrayList<>();
-        scanRecursively(classes, scanPath.toFile());
+        scanRecursively(scanPath.toFile(), classes);
         return classes;
     }
 
     /**
-     * 递归的方式将全部查询的文件放入到指定集合中
+     * 递归的方式将全部满足条件的Class放入到指定集合中
      *
-     * @param classes  存放查询结果的集合
      * @param scanPath 搜索目录
+     * @param classes  存放查询结果的集合
      */
-    private void scanRecursively(List<Class<?>> classes, File scanPath) {
-        File[] subFiles = scanPath.listFiles(pathname ->
-                (pathname.isDirectory() || (pathname.getName().endsWith(".java") &&
-                        !pathname.getName().equals("package-info.java"))));
+    private void scanRecursively(File scanPath, List<Class<?>> classes) {
+        File[] subFiles = getSubFiles(scanPath);
         if (subFiles == null) {
             return;
         }
 
         for (File file : subFiles) {
             if (file.isDirectory()) {
-                scanRecursively(classes, file.getAbsoluteFile());
+                scanRecursively(file, classes);
             } else {
-                String className = file.getAbsolutePath().substring(PrePathLength + 1)
-                        .replace(File.separator, ".");
-                try {
-                    // 删除后缀名 (.java)
-                    Class<?> clazz = Class.forName(className.substring(0, className.length() - 5));
-                    if (clazz.isInterface() && isAcceptable(clazz)) {
-                        classes.add(clazz);
-                    }
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
+                Class<?> serviceClass = getServiceClassIfMeet(file);
+                if (serviceClass != null) {
+                    classes.add(serviceClass);
                 }
             }
+        }
+    }
+
+    private File[] getSubFiles(File scanPath) {
+        return scanPath.listFiles(pathname -> (pathname.isDirectory() ||
+                (pathname.getName().endsWith(".java") && !pathname.getName().equals("package-info.java"))));
+    }
+
+    private Class<?> getServiceClassIfMeet(File file) {
+        Class<?> serviceClass = getClass(file);
+        if (serviceClass.isInterface() && isAcceptable(serviceClass)) {
+            return serviceClass;
+        }
+        return null;
+    }
+
+    private Class<?> getClass(File file) {
+        String className = file.getAbsolutePath().substring(projectJavaPathLength + 1)
+                .replaceAll(".java$", "").replace(File.separator, ".");
+        try {
+            return Class.forName(className);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 }

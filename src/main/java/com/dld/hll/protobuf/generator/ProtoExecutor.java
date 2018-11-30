@@ -1,5 +1,6 @@
 package com.dld.hll.protobuf.generator;
 
+import com.dld.hll.protobuf.generator.entity.ProtoCommentSupport;
 import com.dld.hll.protobuf.generator.scanner.JarFileScanner;
 import com.dld.hll.protobuf.generator.scanner.ProjectScanner;
 import com.dld.hll.protobuf.generator.scanner.SelectableScanner;
@@ -23,6 +24,7 @@ import java.nio.file.Paths;
 public class ProtoExecutor {
 
     private Builder builder;
+    private static final String DEFAULT_PROJECT_BASE_PATH = "src/main/java";
 
 
     public static Builder newBuilder() {
@@ -35,26 +37,21 @@ public class ProtoExecutor {
         reader.setRegistry(registry);
 
         // 获取当前项目路径
-        Path projectPath;
-        if (builder.getProjectPath() != null) {
-            projectPath = builder.getProjectPath();
-        } else {
+        Path projectPath = builder.getProjectPath();
+        if (projectPath == null) {
             projectPath = getProjectPath(builder.getProjectName());
         }
 
         // 扫描器
         SelectableScanner scanner;
         if (builder.getJarFile() != null) {
-            scanner = new JarFileScanner(builder.getJarFile(), builder.isNeedLoadJarFile());
+            scanner = new JarFileScanner(builder.getJarFile(), builder.getScanPackage(), builder.isNeedLoadJarFile());
         } else {
-            if (builder.getProjectBasePath() != null) {
-                scanner = new ProjectScanner(projectPath, builder.getProjectBasePath());
-            } else {
-                scanner = new ProjectScanner(projectPath);
-            }
+            Path projectJavaPath = getProjectJavaPath(projectPath, builder.getProjectBasePath());
+            scanner = new ProjectScanner(projectJavaPath, builder.getScanPackage());
         }
 
-        // 选择器
+        // 添加选择器
         if (builder.getExtendsInterface() != null) {
             scanner.addSelector(new ExtendsInterfaceSelector(builder.getExtendsInterface()));
         }
@@ -67,21 +64,19 @@ public class ProtoExecutor {
         }
 
         // 加载全部的接口
-        reader.load(scanner.scanServices(builder.getScanPackage()));
+        reader.load(scanner.scanServices());
 
         // 生成目录
         File generatePath = builder.getGeneratePath() != null ? new File(builder.getGeneratePath()) :
                 projectPath.resolve(builder.getGenerateBasePath()).toFile();
 
         // Proto文件生成器
-        ProtoFileGenerator generator = new ProtoFileGenerator();
-        generator.setRegistry(registry);
-        generator.setGeneratePath(generatePath);
-        generator.setCommonProtoFileName(getCommonProtoFileName(builder.getProjectName()));
+        String commonProtoFileName = getCommonProtoFileName(builder.getProjectName());
+        ProtoFileGenerator generator = new ProtoFileGenerator(registry, generatePath, commonProtoFileName);
 
         // 指定注释注解，及获取注释对应的方法
         if (builder.getCommentClass() != null) {
-            generator.assignCommon(builder.getCommentClass(), builder.getCommentMethodName());
+            assignCommon(builder.getCommentClass(), builder.getCommentMethodName());
         }
 
         // 生成Proto文件
@@ -117,6 +112,16 @@ public class ProtoExecutor {
     }
 
     /**
+     * 获取项目路径 + 类似 Maven Project directory(src/main/java)
+     */
+    private Path getProjectJavaPath(Path projectPath, String projectBasePath) {
+        if (projectBasePath != null) {
+            return projectPath.resolve(projectBasePath);
+        }
+        return projectPath.resolve(DEFAULT_PROJECT_BASE_PATH);
+    }
+
+    /**
      * 获取生成的common proto文件名
      */
     private String getCommonProtoFileName(String projectName) {
@@ -127,6 +132,18 @@ public class ProtoExecutor {
         }
         commonFileName.append("Common");
         return commonFileName.toString();
+    }
+
+    /**
+     * 指定全局注释类型和获取方法
+     */
+    private void assignCommon(Class<? extends Annotation> commentType, String valueMethod) {
+        ProtoCommentSupport.commentType = commentType;
+        try {
+            ProtoCommentSupport.valueMethod = commentType.getMethod(valueMethod);
+        } catch (NoSuchMethodException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Getter
