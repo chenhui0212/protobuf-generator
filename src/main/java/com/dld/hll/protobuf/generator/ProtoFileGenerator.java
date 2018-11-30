@@ -1,7 +1,6 @@
 package com.dld.hll.protobuf.generator;
 
 import com.dld.hll.protobuf.generator.entity.*;
-import com.dld.hll.protobuf.generator.util.AssertUtils;
 import com.dld.hll.protobuf.generator.util.ProtoUtils;
 import com.dld.hll.protobuf.generator.util.StringUtils;
 import lombok.AllArgsConstructor;
@@ -34,16 +33,12 @@ public class ProtoFileGenerator {
      * 生成proto文件
      */
     public void generate() {
-        // 准备可用的生成目录
         prepareGeneratePath(generatePath);
 
-        // 生成共同类
         writeToFile(commonProtoFileName + ".proto", generateCommon());
 
-        // 生成全部的接口类
         for (ProtoService protoService : registry.getProtoServices()) {
-            writeToFile(protoService.getName() + ".proto",
-                    generateService(protoService));
+            writeToFile(protoService.getName() + ".proto", generateService(protoService));
         }
     }
 
@@ -51,16 +46,13 @@ public class ProtoFileGenerator {
      * 确保干净可用的生成proto文件的目录
      */
     private void prepareGeneratePath(File generatePath) {
-        // 如果路径不存在，则创建目录
         if (!generatePath.exists()) {
             boolean result = generatePath.mkdirs();
             if (!result) {
                 throw new RuntimeException("Could not make directory -> " + generatePath.getAbsolutePath());
             }
-        }
-
-        // 如果存在，则删除目录下全部proto文件
-        else {
+        } else {
+            // 删除目录下全部proto文件
             File[] protoFiles = generatePath.listFiles((file, s) -> s.endsWith(".proto"));
             if (protoFiles != null) {
                 for (File pf : protoFiles) {
@@ -108,7 +100,7 @@ public class ProtoFileGenerator {
      */
     private String generateService(ProtoService protoService) {
         StringBuilder buf = new StringBuilder();
-        generateHeader(buf, protoService);
+        generateServiceHeader(buf, protoService);
 
         // 获取要生成的接口相关类
         Collection<ProtoObject> protoObjects = protoService.getProtoObjectMap().values();
@@ -145,7 +137,7 @@ public class ProtoFileGenerator {
      * 生成对象类型
      */
     private void generateObject(StringBuilder buf, ProtoObject protoObject) {
-        generateComment(buf, protoObject);
+        generateCommentWithIndent(buf, protoObject);
         buf.append("message ").append(protoObject.getClazz().getSimpleName()).append(" {").append(lineSeparator);
         int index = 1;
         index = generateSuperObject(protoObject, buf, index);
@@ -188,7 +180,7 @@ public class ProtoFileGenerator {
      * 生成方法
      */
     private void generateMethod(StringBuilder buf, ProtoMethod protoMethod) {
-        generateComment(buf, protoMethod, INDENTATION_SPACES);
+        generateCommentWithIndent(buf, protoMethod);
         buf.append(INDENTATION_SPACES).append("rpc ").append(protoMethod.getName())
                 .append(" (").append(protoMethod.getParameterTypeName()).append(") ")
                 .append("returns (").append(protoMethod.getReturnTypeName()).append(");").append(lineSeparator);
@@ -198,7 +190,7 @@ public class ProtoFileGenerator {
      * 生成字段
      */
     private void generateField(StringBuilder buf, ProtoField protoField, int index) {
-        generateComment(buf, protoField, INDENTATION_SPACES);
+        generateCommentWithIndent(buf, protoField);
         buf.append(INDENTATION_SPACES);
         if (ProtoUtils.isNotGeneric(protoField.getFieldType())) {
             buf.append(protoField.getTypeName());
@@ -213,9 +205,8 @@ public class ProtoFileGenerator {
      * 生成枚举字段
      */
     private void generateEnumField(StringBuilder buf, ProtoField protoField, int index) {
-        generateComment(buf, protoField, INDENTATION_SPACES);
-        buf.append(INDENTATION_SPACES);
-        buf.append(protoField.getName());
+        generateCommentWithIndent(buf, protoField);
+        buf.append(INDENTATION_SPACES).append(protoField.getName());
         buf.append(" = ").append(index).append(";").append(lineSeparator);
     }
 
@@ -279,23 +270,23 @@ public class ProtoFileGenerator {
      * 生成Common头
      */
     private void generateCommonHeader(StringBuilder buf) {
-        buf.append("syntax = \"proto3\"").append(";").append(doubleLineSeparator);
+        buf.append("syntax = \"proto3\";").append(doubleLineSeparator);
         buf.append("option java_multiple_files = true;").append(lineSeparator);
         buf.append("option java_package = \"").append(getCommonPackagePath()).append(".grpc\";").append(lineSeparator);
-        buf.append("option java_outer_classname = \"").append(commonProtoFileName).append("Class").append("\";")
+        buf.append("option java_outer_classname = \"").append(commonProtoFileName).append("Class\";")
                 .append(doubleLineSeparator);
     }
 
     /**
      * 生成服务头
      */
-    private void generateHeader(StringBuilder buf, ProtoService protoService) {
-        buf.append("syntax = \"proto3\"").append(";").append(doubleLineSeparator);
+    private void generateServiceHeader(StringBuilder buf, ProtoService protoService) {
+        buf.append("syntax = \"proto3\";").append(doubleLineSeparator);
         buf.append("option java_multiple_files = true;").append(lineSeparator);
         String packagePath = protoService.getClazz().getPackage().getName();
         buf.append("option java_package = \"").append(packagePath).append(".grpc\";").append(lineSeparator);
         buf.append("option java_outer_classname = \"").append(protoService.getClazz().getSimpleName())
-                .append("Class").append("\";").append(lineSeparator);
+                .append("Class\";").append(lineSeparator);
         buf.append("import \"").append(commonProtoFileName).append(".proto\";").append(lineSeparator);
         buf.append("import \"google/protobuf/wrappers.proto\";").append(doubleLineSeparator);
     }
@@ -323,13 +314,21 @@ public class ProtoFileGenerator {
      * 生成注释
      */
     private <T extends ProtoCommentSupport> void generateComment(StringBuilder buf, T protoElement) {
-        generateComment(buf, protoElement, null);
+        generateCommentWithIndent(buf, protoElement, null);
     }
 
     /**
-     * 生成注释
+     * 生成带缩进的注释
      */
-    private <T extends ProtoCommentSupport> void generateComment(StringBuilder buf, T protoElement, String prefix) {
+    private <T extends ProtoCommentSupport> void generateCommentWithIndent(StringBuilder buf, T protoElement) {
+        generateCommentWithIndent(buf, protoElement, INDENTATION_SPACES);
+    }
+
+    /**
+     * 生成指定缩进内容的注释
+     */
+    private <T extends ProtoCommentSupport> void generateCommentWithIndent(
+            StringBuilder buf, T protoElement, String prefix) {
         String description = protoElement.getComment();
         if (description != null) {
             if (prefix != null) {
@@ -339,18 +338,11 @@ public class ProtoFileGenerator {
         }
     }
 
-    /**
-     * 获取Common proto文件生成路径
-     */
     private String getCommonPackagePath() {
         List<ProtoService> protoServices = registry.getProtoServices();
-        AssertUtils.notEmpty(protoServices, "could not found in any service interfaces");
         return protoServices.get(0).getClazz().getPackage().getName();
     }
 
-    /**
-     * 写入文件
-     */
     private void writeToFile(String fileName, String content) {
         File file = new File(generatePath, fileName);
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
