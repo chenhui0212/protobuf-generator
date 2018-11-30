@@ -4,13 +4,13 @@ import com.dld.hll.protobuf.generator.entity.*;
 import com.dld.hll.protobuf.generator.util.AssertUtils;
 import com.dld.hll.protobuf.generator.util.ProtoUtils;
 import com.dld.hll.protobuf.generator.util.StringUtils;
+import lombok.AllArgsConstructor;
 import lombok.Setter;
 
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.lang.annotation.Annotation;
 import java.util.Collection;
 import java.util.List;
 
@@ -18,29 +18,17 @@ import java.util.List;
  * @author Chen Hui
  */
 @Setter
+@AllArgsConstructor
 public class ProtoFileGenerator {
 
     private ProtoInfoRegistry registry;
     private File generatePath;
-
-    private static final String INDENTATION_SPACES = "    ";
-    //    private static String lineSeparator = System.lineSeparator();
-    private static String lineSeparator = "\r";
-    private static String doubleLineSeparator = lineSeparator + lineSeparator;
     private String commonProtoFileName;
 
+    private static final String INDENTATION_SPACES = "    ";
+    private static String lineSeparator = "\r";
+    private static String doubleLineSeparator = lineSeparator + lineSeparator;
 
-    /**
-     * 指定全局注释类型和获取方法
-     */
-    public void assignCommon(Class<? extends Annotation> commentType, String valueMethod) {
-        ProtoCommentSupport.commentType = commentType;
-        try {
-            ProtoCommentSupport.valueMethod = commentType.getMethod(valueMethod);
-        } catch (NoSuchMethodException e) {
-            throw new RuntimeException(e);
-        }
-    }
 
     /**
      * 生成proto文件
@@ -58,7 +46,6 @@ public class ProtoFileGenerator {
                     generateService(protoService));
         }
     }
-
 
     /**
      * 确保干净可用的生成proto文件的目录

@@ -9,5 +9,5 @@ import java.util.List;
  */
 public interface ProtoInfoScanner {
 
-    List<Class<?>> scanServices(String scanPackage);
+    List<Class<?>> scanServices();
 }

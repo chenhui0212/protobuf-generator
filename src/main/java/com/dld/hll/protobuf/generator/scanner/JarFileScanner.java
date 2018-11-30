@@ -24,10 +24,12 @@ public class JarFileScanner extends SelectableScanner {
 
     private String jarFile;
     private URLClassLoader jcl;
+    private String scanPackage;
 
 
-    public JarFileScanner(String jarFile, boolean isNeedLoad) {
+    public JarFileScanner(String jarFile, String scanPackage, boolean isNeedLoad) {
         this.jarFile = jarFile;
+        this.scanPackage = scanPackage;
         if (isNeedLoad) {
             try {
                 jcl = new URLClassLoader(new URL[]{new File(jarFile).toURI().toURL()},
@@ -38,32 +40,44 @@ public class JarFileScanner extends SelectableScanner {
         }
     }
 
-    public List<Class<?>> scanServices(String scanPackage) {
-        try {
-            ArrayList<Class<?>> classes = new ArrayList<>();
-            JarInputStream inputStream = new JarInputStream(new FileInputStream(jarFile));
-
+    @Override
+    public List<Class<?>> scanServices() {
+        ArrayList<Class<?>> classes = new ArrayList<>();
+        try (JarInputStream inputStream = new JarInputStream(new FileInputStream(jarFile))) {
             JarEntry entry;
             while ((entry = inputStream.getNextJarEntry()) != null) {
-                if (entry.getName().endsWith(".class") && !entry.getName().contains("$")) {
-                    String className = entry.getName().replace("/", ".");
-                    if (scanPackage != null && !className.startsWith(scanPackage)) {
-                        continue;
-                    }
-
-                    // 加载
-                    Class<?> clazz;
-                    if (jcl == null) {
-                        clazz = Class.forName(className.substring(0, className.length() - 6));
-                    } else {
-                        clazz = Class.forName(className.substring(0, className.length() - 6), true, jcl);
-                    }
-                    if (clazz.isInterface() && isAcceptable(clazz)) {
-                        classes.add(clazz);
-                    }
+                Class<?> serviceClass = getServiceClassIfMeet(entry);
+                if (serviceClass != null) {
+                    classes.add(serviceClass);
                 }
             }
-            return classes;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        return classes;
+    }
+
+    private Class<?> getServiceClassIfMeet(JarEntry entry) {
+        if (isNameAndPackageMeet(entry)) {
+            Class<?> serviceClass = getClass(entry);
+            if (serviceClass.isInterface() && isAcceptable(serviceClass)) {
+                return serviceClass;
+            }
+        }
+        return null;
+    }
+
+    private boolean isNameAndPackageMeet(JarEntry entry) {
+        if (!entry.getName().endsWith(".class") || entry.getName().contains("$")) {
+            return false;
+        }
+        return scanPackage == null || entry.getName().startsWith(scanPackage);
+    }
+
+    private Class<?> getClass(JarEntry entry) {
+        String className = entry.getName().replaceAll(".class$", "").replace("/", ".");
+        try {
+            return jcl == null ? Class.forName(className) : Class.forName(className, true, jcl);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
