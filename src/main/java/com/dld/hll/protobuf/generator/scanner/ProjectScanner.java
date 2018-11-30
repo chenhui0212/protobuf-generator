@@ -1,5 +1,7 @@
 package com.dld.hll.protobuf.generator.scanner;
 
+import com.dld.hll.protobuf.generator.util.StringUtils;
+
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -26,7 +28,10 @@ public class ProjectScanner extends SelectableScanner {
 
     public ProjectScanner(Path projectJavaPath, String scanPackage) {
         this.projectJavaPathLength = projectJavaPath.toFile().getAbsolutePath().length();
-        this.scanPath = projectJavaPath.resolve(scanPackage);
+        this.scanPath = projectJavaPath;
+        if (StringUtils.hasText(scanPackage)) {
+            this.scanPath = projectJavaPath.resolve(scanPackage);
+        }
         if (!Files.exists(this.scanPath)) {
             throw new RuntimeException("The scan path [" + this.scanPath + "] doesn't exists!");
         }
