@@ -34,6 +34,7 @@ public class ProtoField extends ProtoCommentSupport {
 
     public ProtoField(Field field) {
         this.field = field;
+        this.fieldType = field.getType();
     }
 
     @Override

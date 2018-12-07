@@ -55,7 +55,7 @@ public class ProtoMethod extends ProtoCommentSupport {
      * 获取方法返回值类型名称
      */
     public String getReturnTypeName() {
-        if (returnType == null) {
+        if (returnType == Void.TYPE) {
             return "Empty";
         }
         return returnType.getSimpleName();

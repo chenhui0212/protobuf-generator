@@ -15,7 +15,7 @@ import java.util.Map;
 @Setter
 public class ProtoService extends ProtoCommentSupport {
 
-    private Class<?> clazz;
+    private Class<?> serviceClass;
 
     /**
      * 全部方法
@@ -23,27 +23,43 @@ public class ProtoService extends ProtoCommentSupport {
     private List<ProtoMethod> protoMethods;
 
     /**
-     * 当前服务接口中全部解析类（不包括其它服务已解析的）
+     * 当前服务接口中全部解析类
      */
     private Map<Class<?>, ProtoObject> protoObjectMap = new HashMap<>();
 
     /**
-     * 当前服务接口中全部解析泛型类（不包括其它服务已解析的）
+     * 当前服务接口中全部内嵌泛型类
      */
     private Map<Type, ProtoGenericField> genericFieldMap = new HashMap<>();
 
 
-    public ProtoService(Class<?> clazz) {
-        this.clazz = clazz;
+    public ProtoService(Class<?> serviceClass) {
+        this.serviceClass = serviceClass;
     }
 
     @Override
     public String getName() {
-        return clazz.getSimpleName();
+        return serviceClass.getSimpleName();
     }
 
     @Override
     public String getComment() {
-        return getComment(clazz);
+        return getComment(serviceClass);
+    }
+
+    public boolean isExists(Class<?> clazz) {
+        return protoObjectMap.containsKey(clazz);
+    }
+
+    public boolean isExists(Type type) {
+        return genericFieldMap.containsKey(type);
+    }
+
+    public void addParsed(Class<?> clazz, ProtoObject protoObject) {
+        protoObjectMap.put(clazz, protoObject);
+    }
+
+    public void addParsed(Type type, ProtoGenericField protoGenericField) {
+        genericFieldMap.put(type, protoGenericField);
     }
 }
