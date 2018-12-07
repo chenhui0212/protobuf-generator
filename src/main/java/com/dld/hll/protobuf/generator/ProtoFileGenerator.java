@@ -25,7 +25,7 @@ public class ProtoFileGenerator {
     private String commonProtoFileName;
 
     private static final String INDENTATION_SPACES = "    ";
-    private static String lineSeparator = "\r";
+    private static String lineSeparator = "\n";
     private static String doubleLineSeparator = lineSeparator + lineSeparator;
 
 
@@ -106,7 +106,7 @@ public class ProtoFileGenerator {
         Collection<ProtoObject> protoObjects = protoService.getProtoObjectMap().values();
         generateObjects(buf, protoObjects);
 
-        // 生成泛型类型
+        // 生成内嵌泛型类型
         for (ProtoGenericField genericField : protoService.getGenericFieldMap().values()) {
             if (genericField.getCitations() == 1) {
                 generateGenericFieldObject(buf, genericField);
@@ -283,9 +283,9 @@ public class ProtoFileGenerator {
     private void generateServiceHeader(StringBuilder buf, ProtoService protoService) {
         buf.append("syntax = \"proto3\";").append(doubleLineSeparator);
         buf.append("option java_multiple_files = true;").append(lineSeparator);
-        String packagePath = protoService.getClazz().getPackage().getName();
+        String packagePath = protoService.getServiceClass().getPackage().getName();
         buf.append("option java_package = \"").append(packagePath).append(".grpc\";").append(lineSeparator);
-        buf.append("option java_outer_classname = \"").append(protoService.getClazz().getSimpleName())
+        buf.append("option java_outer_classname = \"").append(protoService.getServiceClass().getSimpleName())
                 .append("Class\";").append(lineSeparator);
         buf.append("import \"").append(commonProtoFileName).append(".proto\";").append(lineSeparator);
         buf.append("import \"google/protobuf/wrappers.proto\";").append(doubleLineSeparator);
@@ -303,7 +303,7 @@ public class ProtoFileGenerator {
      */
     private void generateServiceInterface(StringBuilder buf, ProtoService protoService) {
         generateComment(buf, protoService);
-        buf.append("service ").append(protoService.getClazz().getSimpleName()).append(" {").append(lineSeparator);
+        buf.append("service ").append(protoService.getServiceClass().getSimpleName()).append(" {").append(lineSeparator);
         for (ProtoMethod protoMethod : protoService.getProtoMethods()) {
             generateMethod(buf, protoMethod);
         }
@@ -339,8 +339,8 @@ public class ProtoFileGenerator {
     }
 
     private String getCommonPackagePath() {
-        List<ProtoService> protoServices = registry.getProtoServices();
-        return protoServices.get(0).getClazz().getPackage().getName();
+        ProtoService protoService = registry.getProtoServices().get(0);
+        return protoService.getServiceClass().getPackage().getName();
     }
 
     private void writeToFile(String fileName, String content) {

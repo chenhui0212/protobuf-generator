@@ -84,7 +84,7 @@ public abstract class ProtoUtils {
     }
 
     public static boolean isNotGeneric(Class<?> clazz) {
-        return !Collection.class.isAssignableFrom(clazz) && !Map.class.isAssignableFrom(clazz);
+        return !isCollection(clazz) && !isMap(clazz);
     }
 
     public static boolean isCollection(Type type) {
